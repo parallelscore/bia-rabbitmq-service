@@ -1,0 +1,192 @@
+name: development CICD
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - 'dev'
+
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - 'dev'
+
+env:
+  ENV: development
+
+jobs:
+
+  build-docker-image:
+    runs-on: ubuntu-latest
+
+    outputs:
+      image-tag: ${{ steps.vars.outputs.image-tag }}
+
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      -
+        name: Build (but not push) Docker image
+        id: vars
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          load: true
+          build-args: |
+            RABBITMQ_URL=${{ secrets.DEV_RABBITMQ_URL }}
+            REDIS_HOST=${{ secrets.DEV_REDIS_HOST }}
+            REDIS_PORT=${{ secrets.DEV_REDIS_PORT }}
+            REDIS_PASSWORD=${{ secrets.DEV_REDIS_PASSWORD }}
+            REDIS_DB=${{ secrets.DEV_REDIS_DB }}
+
+      -
+        name: Save image tag
+        run: echo "::set-output name=image-tag::${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest"
+
+  notification-on-build-status:
+    runs-on: ubuntu-latest
+    needs: build-docker-image
+    if: always()
+    steps:
+      - name: Send Build Status Notification Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.mailgun.org
+          server_port: 465
+          username: ${{ secrets.MAILGUN_EMAIL }}
+          password: ${{ secrets.MAILGUN_PASSWORD }}
+          subject: Build and Scan Status - ${{ job.status }}
+          body: The build and scan process for ${{ secrets.DOCKER_IMAGE_NAME }} completed with status - ${{ job.status }}. Check the actions logs for more details.
+          to: ${{ secrets.RECEIVING_EMAIL }}
+          from: ${{ secrets.MAILGUN_EMAIL }}
+          secure: true
+
+  check-code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install requirements and dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install coverage
+
+      - name: Run tests and generate coverage report
+        run: |
+          coverage run --source=. -m pytest tests/
+          coverage xml -i
+        env:
+          RABBITMQ_URL: ${{ secrets.DEV_RABBITMQ_URL }}
+          REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          REDIS_PASSWORD: ${{ secrets.DEV_REDIS_PASSWORD }}
+          REDIS_DB: ${{ secrets.DEV_REDIS_DB }}
+
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  push-docker-image:
+    needs: [check-code-quality, build-docker-image]
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          build-args: |
+            RABBITMQ_URL=${{ secrets.DEV_RABBITMQ_URL }}
+            REDIS_HOST=${{ secrets.DEV_REDIS_HOST }}
+            REDIS_PORT=${{ secrets.DEV_REDIS_PORT }}
+            REDIS_PASSWORD=${{ secrets.DEV_REDIS_PASSWORD }}
+            REDIS_DB=${{ secrets.DEV_REDIS_DB }}
+
+  scan-docker-image:
+    runs-on: ubuntu-latest
+    needs: push-docker-image
+    if: ${{ github.event_name != 'pull_request' }}
+    steps:
+      -
+        name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          format: 'table'
+          exit-code: '1'  # Trivy will exit with 1 if vulnerabilities are found
+          ignore-unfixed: true
+          vuln-type: 'library'
+          severity: 'CRITICAL,HIGH'
+
+  deploy-to-kubernetes:
+    needs: scan-docker-image
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Install and configure kubectl
+        run: |
+          curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+          echo "${{ secrets.BIA_K8_KUBECONFIG }}" | base64 --decode > kubeconfig.yaml
+
+      -
+        name: Deploy to Kubernetes
+        run: |
+          KUBECONFIG=kubeconfig.yaml kubectl rollout restart deployment/${{ secrets.DEV_DEPLOYMENT_NAME }} -n ${{ secrets.DEV_NAMESPACE }}
+
+  notification-on-deployment-status:
+    runs-on: ubuntu-latest
+    needs: deploy-to-kubernetes
+    if: needs.deploy-to-kubernetes
+    steps:
+      - name: Send Deployment Status Notification Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.mailgun.org
+          server_port: 465
+          username: ${{ secrets.MAILGUN_EMAIL }}
+          password: ${{ secrets.MAILGUN_PASSWORD }}
+          subject: Build and Scan Status - ${{ job.status }}
+          body: The deployment process for ${{ secrets.DEV_DEPLOYMENT_NAME }} in namespace ${{ secrets.DEV_NAMESPACE }} completed with status - ${{ job.status }}. Check the actions logs for more details.
+          to: ${{ secrets.RECEIVING_EMAIL }}
+          from: ${{ secrets.MAILGUN_EMAIL }}
+          secure: true
