@@ -1,1 +1,9 @@
 .idea
+__pycache__
+
+.env
+.env.testing
+.env.production
+.env.development
+
+bia-rabbitmq-service.iml
