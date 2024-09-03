@@ -32,7 +32,13 @@ class TestRabbitmqUtil:
     async def test_consume_message(self, rabbitmq_util):
         async for util in rabbitmq_util:
             queue_name = 'test_queue'
-            callback = MagicMock()
+
+            # Create an async mock function
+            async def async_callback(message):
+                return MagicMock()
+
+            callback = MagicMock(side_effect=async_callback)
+
             await util.consume_message(queue_name, callback)
 
     @pytest.mark.asyncio
