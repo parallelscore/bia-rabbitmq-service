@@ -69,7 +69,7 @@ jobs:
           server_port: 465
           username: ${{ secrets.MAILGUN_EMAIL }}
           password: ${{ secrets.MAILGUN_PASSWORD }}
-          subject: Build and Scan Status - ${{ job.status }}
+          subject: Build Status - ${{ job.status }}
           body: The build and scan process for ${{ secrets.DOCKER_IMAGE_NAME }} completed with status - ${{ job.status }}. Check the actions logs for more details.
           to: ${{ secrets.RECEIVING_EMAIL }}
           from: ${{ secrets.MAILGUN_EMAIL }}
@@ -108,9 +108,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-      - name: Display report-task.txt
-        run: cat .scannerwork/report-task.txt
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
@@ -188,7 +185,7 @@ jobs:
           server_port: 465
           username: ${{ secrets.MAILGUN_EMAIL }}
           password: ${{ secrets.MAILGUN_PASSWORD }}
-          subject: Build and Scan Status - ${{ job.status }}
+          subject: Scan and Deployment Status - ${{ job.status }}
           body: The deployment process for ${{ secrets.DEV_DEPLOYMENT_NAME }} in namespace ${{ secrets.DEV_NAMESPACE }} completed with status - ${{ job.status }}. Check the actions logs for more details.
           to: ${{ secrets.RECEIVING_EMAIL }}
           from: ${{ secrets.MAILGUN_EMAIL }}
