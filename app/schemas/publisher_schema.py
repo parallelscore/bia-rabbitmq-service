@@ -1,14 +1,14 @@
-from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Optional, Dict, Any, ClassVar
+from pydantic import BaseModel, ConfigDict
 
 
 class PublisherSchema(BaseModel):
     queue_name: Optional[str]
     message: Optional[Dict[str, Any]]
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    publisher_schema_config: ClassVar = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             'example': {
                 'queue_name': 'name_queue',
                 'message': {
@@ -17,3 +17,4 @@ class PublisherSchema(BaseModel):
                 }
             }
         }
+    )

@@ -1,46 +1,48 @@
 import os
-from typing import List
-from pydantic import Field
 from dotenv import load_dotenv
+from typing import List, ClassVar
+from pydantic import Field, ConfigDict
 from pydantic_settings import BaseSettings
 
 
 class BaseConfig(BaseSettings):
-    PROJECT_NAME: str = Field('BIA RabbitMQ Service', env='PROJECT_NAME')
-    DESCRIPTION: str = Field('This is the backend service for BIA rabbitmq engine', env='DESCRIPTION')
-    VERSION: str = Field('1.0.0', env='VERSION')
-    CORS_ORIGINS: List[str] = Field(default=['*'], env='CORS_ORIGINS')
-    API_V1_STR: str = Field('/api/v1', env='API_V1_STR')
-    RABBITMQ_URL: str = Field('amqp://guest:guest@localhost:5672', env='RABBITMQ_URL')
-    REDIS_HOST: str = Field('', env='REDIS_HOST')
-    REDIS_PORT: int = Field(6379, env='REDIS_PORT')
-    REDIS_DB: int = Field(0, env='REDIS_DB')
-    REDIS_PASSWORD: str = Field('', env='REDIS_PASSWORD')
+    PROJECT_NAME: str = Field('BIA RabbitMQ Service', json_schema_extra={'env': 'PROJECT_NAME'})
+    DESCRIPTION: str = Field('This is the backend service for BIA rabbitmq engine', json_schema_extra={'env': 'DESCRIPTION'})
+    VERSION: str = Field('1.0.0', json_schema_extra={'env': 'VERSION'})
+    CORS_ORIGINS: List[str] = Field(default=['*'], json_schema_extra={'env': 'CORS_ORIGINS'})
+    API_V1_STR: str = Field('/api/v1', json_schema_extra={'env': 'API_V1_STR'})
+    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
+    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
+    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
+    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
+    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
 
-    class Config:
-        arbitrary_types_allowed = True
+    base_config: ClassVar = ConfigDict(
+        arbitrary_types_allowed=True,
+    )
 
 
 class DevelopmentConfig(BaseConfig):
-    DEBUG: bool = Field(True, env='DEBUG')
-    RABBITMQ_URL: str = Field('', env='RABBITMQ_URL')
-    REDIS_HOST: str = Field('', env='REDIS_HOST')
-    REDIS_PORT: int = Field(6379, env='REDIS_PORT')
-    REDIS_DB: int = Field(0, env='REDIS_DB')
-    REDIS_PASSWORD: str = Field('', env='REDIS_PASSWORD')
+    DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
+    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
+    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
+    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
+    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
+    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
 
 
 class TestingConfig(BaseConfig):
-    DEBUG: bool = Field(True, env='DEBUG')
+    # DEBUG: bool = Field(True, env='DEBUG')
+    DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
 
 
 class ProductionConfig(BaseConfig):
-    DEBUG: bool = Field(False, env='DEBUG')
-    RABBITMQ_URL: str = Field('', env='RABBITMQ_URL')
-    REDIS_HOST: str = Field('', env='REDIS_HOST')
-    REDIS_PORT: int = Field(6379, env='REDIS_PORT')
-    REDIS_DB: int = Field(0, env='REDIS_DB')
-    REDIS_PASSWORD: str = Field('', env='REDIS_PASSWORD')
+    DEBUG: bool = Field(False, json_schema_extra={'env': 'DEBUG'})
+    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
+    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
+    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
+    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
+    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
 
 
 def get_settings():
