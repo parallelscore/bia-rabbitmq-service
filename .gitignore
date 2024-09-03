@@ -5,5 +5,7 @@ __pycache__
 .env.testing
 .env.production
 .env.development
+.coverage
 
+coverage.xml
 bia-rabbitmq-service.iml
