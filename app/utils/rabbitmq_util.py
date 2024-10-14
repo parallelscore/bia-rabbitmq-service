@@ -25,7 +25,7 @@ class RabbitMQUtil:
                     self.server,
                     heartbeat=60,
                     timeout=30,
-                    client_properties={"connection_name": "chaterpillar project"}
+                    client_properties={"connection_name": "bia project"}
                 )
                 self.channel = await self.connection.channel()
                 await self.channel.set_qos(prefetch_count=1)
@@ -62,6 +62,15 @@ class RabbitMQUtil:
         except AMQPError as e:
             self.logger.error("Failed to publish message to queue '%s': %s", queue_name, e)
             raise e
+
+        finally:
+            try:
+                # Ensure the channel or connection is properly closed if necessary
+                if self.channel:
+                    # await self.channel.close()
+                    await self.close_connection()
+            except Exception as cleanup_error:
+                self.logger.error("Failed to properly close the channel: %s", cleanup_error)
         # finally:
         #     try:
         #         # Ensure the channel or connection is properly closed if necessary
@@ -76,6 +85,7 @@ class RabbitMQUtil:
             queue = await self.declare_queue(queue_name)
             await queue.consume(callback)
             self.logger.info("Started consuming message from queue '%s'", queue_name)
+            
         except AMQPError as e:
             self.logger.error("Failed to consume from queue '%s': %s", queue_name, e)
             raise e
