@@ -15,10 +15,13 @@ ENV REDIS_DB=$REDIS_DB
 ENV REDIS_PASSWORD=$REDIS_PASSWORD
 
 # Set the working directory in the container to /app
-WORKDIR /app
+WORKDIR /home
+
+# Create api directory inside /app
+RUN mkdir /home/app
 
 # Add the module directory contents into the container at /app/api
-ADD ./app /app
+ADD ./app /home/app
 
 # Copy the requirements file into the container at /app
 ADD ./requirements.txt /app
@@ -27,4 +30,4 @@ ADD ./requirements.txt /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Run app.py when the container launches
-CMD ["uvicorn", "app.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

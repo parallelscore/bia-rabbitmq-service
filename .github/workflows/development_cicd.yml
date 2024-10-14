@@ -97,6 +97,7 @@ jobs:
         run: |
           coverage run --source=. -m pytest tests/
           coverage xml -i
+          coverage report
         env:
           RABBITMQ_URL: ${{ secrets.DEV_RABBITMQ_URL }}
           REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
@@ -108,14 +109,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-      - name: List all files in the repository
-        run: |
-          ls -al -R
-
-      - name: Read the contents of scanner
-        run: |
-          cat .scannerwork/report-task.txt
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5

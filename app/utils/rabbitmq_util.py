@@ -62,6 +62,7 @@ class RabbitMQUtil:
         except AMQPError as e:
             self.logger.error("Failed to publish message to queue '%s': %s", queue_name, e)
             raise e
+
         finally:
             try:
                 # Ensure the channel or connection is properly closed if necessary
@@ -70,6 +71,13 @@ class RabbitMQUtil:
                     await self.close_connection()
             except Exception as cleanup_error:
                 self.logger.error("Failed to properly close the channel: %s", cleanup_error)
+        # finally:
+        #     try:
+        #         # Ensure the channel or connection is properly closed if necessary
+        #         if self.channel:
+        #             await self.channel.close()
+        #     except Exception as cleanup_error:
+        #         self.logger.error("Failed to properly close the channel: %s", cleanup_error)
 
     async def consume_message(self, queue_name, callback) -> None:
         await self.ensure_connection()

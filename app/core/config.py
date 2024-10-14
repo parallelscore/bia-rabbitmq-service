@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings
 
 class BaseConfig(BaseSettings):
     PROJECT_NAME: str = Field('BIA RabbitMQ Service', json_schema_extra={'env': 'PROJECT_NAME'})
-    DESCRIPTION: str = Field('This is the backend service for BIA rabbitmq engine', json_schema_extra={'env': 'DESCRIPTION'})
+    DESCRIPTION: str = Field('This is the backend service for BIA rabbitmq engine',
+                             json_schema_extra={'env': 'DESCRIPTION'})
     VERSION: str = Field('1.0.0', json_schema_extra={'env': 'VERSION'})
     CORS_ORIGINS: List[str] = Field(default=['*'], json_schema_extra={'env': 'CORS_ORIGINS'})
     API_V1_STR: str = Field('/api/v1', json_schema_extra={'env': 'API_V1_STR'})
