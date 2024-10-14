@@ -32,7 +32,7 @@ class PublisherService:
         except Exception as e:
             self.logger.error(f'Failed to publish message: {str(e)}')
 
-    async def publish_ai_analysis_message(self, queue_name: str, message: Dict[str, Any]) -> None:
+    async def publish_message(self, queue_name: str, message: Dict[str, Any]) -> None:
 
         """
         Publish messages to the  queue.
