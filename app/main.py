@@ -1,4 +1,6 @@
 import time
+from sys import prefix
+
 import uvicorn
 from fastapi import FastAPI
 
@@ -6,6 +8,7 @@ from app.core.config import settings
 from app.core.middleware import register_middlewares
 from app.api.routes.publisher import PublisherRouter
 from app.api.routes.server_metrics import ServerMetrics
+from app.api.routes.sayo import SayoRouter
 
 
 def create_app() -> FastAPI:
@@ -23,10 +26,12 @@ def create_app() -> FastAPI:
 
     publisher_router = PublisherRouter().router
     server_metrics_router = ServerMetrics(app).router
+    sayo_router = SayoRouter().router
 
     # Register the routers
     app.include_router(server_metrics_router)
     app.include_router(publisher_router, prefix=settings.API_V1_STR)
+    app.include_router(sayo_router, prefix=settings.API_V1_STR)
 
     return app
 
