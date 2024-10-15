@@ -41,7 +41,7 @@ class RabbitMQUtil:
     async def declare_queue(self, queue_name) -> Any:
         await self.ensure_connection()
         try:
-            queue = await self.channel.declare_queue(queue_name)
+            queue = await self.channel.declare_queue(queue_name, durable=True)
             self.logger.info("Declared queue '%s'", queue_name)
             return queue
         except AMQPError as e:
