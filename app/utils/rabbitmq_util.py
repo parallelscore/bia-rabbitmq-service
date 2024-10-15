@@ -1,6 +1,7 @@
 import json
 import asyncio
 from typing import Any
+from aio_pika import ExchangeType
 from aio_pika.exceptions import AMQPError
 from aio_pika.abc import AbstractRobustConnection
 from aio_pika import connect_robust, Message, DeliveryMode
@@ -48,14 +49,17 @@ class RabbitMQUtil:
             self.logger.error("Failed to declare queue '%s': %s", queue_name, e)
             raise e
 
-    async def publish_message(self, queue_name, message, routing_key=None) -> None:
+    async def publish_message(self, queue_name, message, routing_key=None, pattern=None) -> None:
         await self.ensure_connection()
         try:
             actual_routing_key = routing_key or queue_name
-            await self.channel.default_exchange.publish(
+            exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC, durable=True)
+            headers = {"pattern": pattern} if pattern else {}
+            await exchange.publish(
                 Message(
                     body=json.dumps(message).encode(),
-                    delivery_mode=DeliveryMode.PERSISTENT
+                    delivery_mode=DeliveryMode.PERSISTENT,
+                    headers=headers
                 ),
                 routing_key=actual_routing_key
             )
