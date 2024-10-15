@@ -48,15 +48,16 @@ class RabbitMQUtil:
             self.logger.error("Failed to declare queue '%s': %s", queue_name, e)
             raise e
 
-    async def publish_message(self, queue_name, message) -> None:
+    async def publish_message(self, queue_name, message, routing_key=None) -> None:
         await self.ensure_connection()
         try:
+            actual_routing_key = routing_key or queue_name
             await self.channel.default_exchange.publish(
                 Message(
                     body=json.dumps(message).encode(),
                     delivery_mode=DeliveryMode.PERSISTENT
                 ),
-                routing_key=queue_name
+                routing_key=actual_routing_key
             )
             self.logger.info("Message published to queue '%s'", queue_name)
         except AMQPError as e:
