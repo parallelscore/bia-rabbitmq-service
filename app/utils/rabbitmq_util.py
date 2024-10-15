@@ -1,6 +1,7 @@
 import json
 import asyncio
 from typing import Any
+from aio_pika import ExchangeType
 from aio_pika.exceptions import AMQPError
 from aio_pika.abc import AbstractRobustConnection
 from aio_pika import connect_robust, Message, DeliveryMode
@@ -48,15 +49,19 @@ class RabbitMQUtil:
             self.logger.error("Failed to declare queue '%s': %s", queue_name, e)
             raise e
 
-    async def publish_message(self, queue_name, message) -> None:
+    async def publish_message(self, queue_name, message, routing_key=None, pattern=None) -> None:
         await self.ensure_connection()
         try:
+            actual_routing_key = routing_key or queue_name
+            # exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC)
+            # headers = {"pattern": pattern} if pattern else {}
             await self.channel.default_exchange.publish(
                 Message(
                     body=json.dumps(message).encode(),
-                    delivery_mode=DeliveryMode.PERSISTENT
+                    delivery_mode=DeliveryMode.PERSISTENT,
+                    # headers=headers
                 ),
-                routing_key=queue_name
+                routing_key=actual_routing_key
             )
             self.logger.info("Message published to queue '%s'", queue_name)
         except AMQPError as e:
@@ -71,13 +76,6 @@ class RabbitMQUtil:
                     await self.close_connection()
             except Exception as cleanup_error:
                 self.logger.error("Failed to properly close the channel: %s", cleanup_error)
-        # finally:
-        #     try:
-        #         # Ensure the channel or connection is properly closed if necessary
-        #         if self.channel:
-        #             await self.channel.close()
-        #     except Exception as cleanup_error:
-        #         self.logger.error("Failed to properly close the channel: %s", cleanup_error)
 
     async def consume_message(self, queue_name, callback) -> None:
         await self.ensure_connection()
