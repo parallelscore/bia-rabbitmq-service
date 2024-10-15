@@ -53,13 +53,13 @@ class RabbitMQUtil:
         await self.ensure_connection()
         try:
             actual_routing_key = routing_key or queue_name
-            exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC, durable=True)
-            headers = {"pattern": pattern} if pattern else {}
-            await exchange.publish(
+            # exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC)
+            # headers = {"pattern": pattern} if pattern else {}
+            await self.channel.default_exchange.publish(
                 Message(
                     body=json.dumps(message).encode(),
                     delivery_mode=DeliveryMode.PERSISTENT,
-                    headers=headers
+                    # headers=headers
                 ),
                 routing_key=actual_routing_key
             )
