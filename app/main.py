@@ -1,4 +1,6 @@
 import time
+from sys import prefix
+
 import uvicorn
 import asyncio
 from fastapi import FastAPI
@@ -10,6 +12,8 @@ from app.api.routes.server_metrics import ServerMetrics
 from app.listeners.queue_message_forwader import queue_message_forwader
 from app.listeners.queue_message_forwader_ai_service import queue_message_forwader_ai_service
 from app.utils.constants import RABBITMQ_QUEUES
+from app.api.routes.sayo import SayoRouter
+
 
 
 def create_app() -> FastAPI:
@@ -27,10 +31,12 @@ def create_app() -> FastAPI:
 
     publisher_router = PublisherRouter().router
     server_metrics_router = ServerMetrics(app).router
+    sayo_router = SayoRouter().router
 
     # Register the routers
     app.include_router(server_metrics_router)
     app.include_router(publisher_router, prefix=settings.API_V1_STR)
+    app.include_router(sayo_router, prefix=settings.API_V1_STR)
 
     # Start consumers on application startup
     app.add_event_handler('startup', start_consumers)
