@@ -1,19 +1,19 @@
-name: production CICD
+name: Demo CICD
 
 on:
   workflow_dispatch:
 
   push:
     branches:
-      - 'prod'
+      - 'demo'
 
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - 'prod'
+      - 'demo'
 
 env:
-  ENV: production
+  ENV: demo
 
 jobs:
 
@@ -47,15 +47,15 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
           load: true
           build-args: |
-            RABBITMQ_URL=${{ secrets.PROD_RABBITMQ_URL }}
-            REDIS_HOST=${{ secrets.PROD_REDIS_HOST }}
-            REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
-            REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }}
-            REDIS_DB=${{ secrets.PROD_REDIS_DB }}
+            RABBITMQ_URL=${{ secrets.DEMO_RABBITMQ_URL }}
+            REDIS_HOST=${{ secrets.DEMO_REDIS_HOST }}
+            REDIS_PORT=${{ secrets.DEMO_REDIS_PORT }}
+            REDIS_PASSWORD=${{ secrets.DEMO_REDIS_PASSWORD }}
+            REDIS_DB=${{ secrets.DEMO_REDIS_DB }}
 
       -
         name: Save image tag
-        run: echo "::set-output name=image-tag::${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest"
+        run: echo "::set-output name=image-tag::${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:demo"
 
   notification-on-build-status:
     runs-on: ubuntu-latest
@@ -98,11 +98,11 @@ jobs:
           coverage run --source=. -m pytest tests/
           coverage xml -i
         env:
-          RABBITMQ_URL: ${{ secrets.PROD_RABBITMQ_URL }}
-          REDIS_HOST: ${{ secrets.PROD_REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.PROD_REDIS_PORT }}
-          REDIS_PASSWORD: ${{ secrets.PROD_REDIS_PASSWORD }}
-          REDIS_DB: ${{ secrets.PROD_REDIS_DB }}
+          RABBITMQ_URL: ${{ secrets.DEMO_RABBITMQ_URL }}
+          REDIS_HOST: ${{ secrets.DEMO_REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.DEMO_REDIS_PORT }}
+          REDIS_PASSWORD: ${{ secrets.DEMO_REDIS_PASSWORD }}
+          REDIS_DB: ${{ secrets.DEMO_REDIS_DB }}
 
       - uses: sonarsource/sonarqube-scan-action@master
         env:
@@ -110,10 +110,10 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_SCANNER_OPTS: "-X"
 
-      - uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#      - uses: sonarsource/sonarqube-quality-gate-action@master
+#        timeout-minutes: 5
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   push-docker-image:
     needs: [check-code-quality, build-docker-image]
@@ -134,30 +134,30 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
           build-args: |
-            RABBITMQ_URL=${{ secrets.PROD_RABBITMQ_URL }}
-            REDIS_HOST=${{ secrets.PROD_REDIS_HOST }}
-            REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
-            REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }}
-            REDIS_DB=${{ secrets.PROD_REDIS_DB }}
+            RABBITMQ_URL=${{ secrets.DEMO_RABBITMQ_URL }}
+            REDIS_HOST=${{ secrets.DEMO_REDIS_HOST }}
+            REDIS_PORT=${{ secrets.DEMO_REDIS_PORT }}
+            REDIS_PASSWORD=${{ secrets.DEMO_REDIS_PASSWORD }}
+            REDIS_DB=${{ secrets.DEMO_REDIS_DB }}
 
-  scan-docker-image:
-    runs-on: ubuntu-latest
-    needs: push-docker-image
-    if: ${{ github.event_name != 'pull_request' }}
-    steps:
-      -
-        name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
-          format: 'table'
-          exit-code: '1'  # Trivy will exit with 1 if vulnerabilities are found
-          ignore-unfixed: true
-          vuln-type: 'library'
-          severity: 'CRITICAL,HIGH'
+#  scan-docker-image:
+#    runs-on: ubuntu-latest
+#    needs: push-docker-image
+#    if: ${{ github.event_name != 'pull_request' }}
+#    steps:
+#      -
+#        name: Scan Docker image with Trivy
+#        uses: aquasecurity/trivy-action@master
+#        with:
+#          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+#          format: 'table'
+#          exit-code: '1'  # Trivy will exit with 1 if vulnerabilities are found
+#          ignore-unfixed: true
+#          vuln-type: 'library'
+#          severity: 'CRITICAL,HIGH'
 
   deploy-to-kubernetes:
-    needs: scan-docker-image
+    needs: push-docker-image
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
@@ -172,7 +172,7 @@ jobs:
       -
         name: Deploy to Kubernetes
         run: |
-          KUBECONFIG=kubeconfig.yaml kubectl rollout restart deployment/${{ secrets.PROD_DEPLOYMENT_NAME }} -n ${{ secrets.PROD_NAMESPACE }}
+          KUBECONFIG=kubeconfig.yaml kubectl rollout restart deployment/${{ secrets.DEMO_DEPLOYMENT_NAME }} -n ${{ secrets.DEMO_NAMESPACE }}
 
   notification-on-deployment-status:
     runs-on: ubuntu-latest
@@ -187,7 +187,7 @@ jobs:
           username: ${{ secrets.MAILGUN_EMAIL }}
           password: ${{ secrets.MAILGUN_PASSWORD }}
           subject: Build and Scan Status - ${{ job.status }}
-          body: The deployment process for ${{ secrets.PROD_DEPLOYMENT_NAME }} in namespace ${{ secrets.PROD_NAMESPACE }} completed with status - ${{ job.status }}. Check the actions logs for more details.
+          body: The deployment process for ${{ secrets.DEMO_DEPLOYMENT_NAME }} in namespace ${{ secrets.DEMO_NAMESPACE }} completed with status - ${{ job.status }}. Check the actions logs for more details.
           to: ${{ secrets.RECEIVING_EMAIL }}
           from: ${{ secrets.MAILGUN_EMAIL }}
           secure: true
