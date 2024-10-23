@@ -2,9 +2,9 @@
 __pycache__
 
 .env
-.env.testing
-.env.production
-.env.development
+.env.dev
+.env.demo
+.env.prod
 .coverage
 
 coverage.xml
