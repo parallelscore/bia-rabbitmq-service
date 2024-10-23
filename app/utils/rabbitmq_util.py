@@ -20,15 +20,20 @@ class RabbitMQUtil:
         self.logger = setup_logger(__name__)
 
     async def setup_connection(self, retries=5, delay=5) -> None:
+        print('In setup_connection...')
         for attempt in range(retries):
+            print(f'Attempt {attempt}...')
             try:
+                print(f'Trying...')
                 self.connection = await connect_robust(
                     self.server,
                     heartbeat=60,
                     timeout=30,
                     client_properties={"connection_name": "bia project"}
                 )
+                print(f'Calling channel...')
                 self.channel = await self.connection.channel()
+                print(f'channel called!')
                 await self.channel.set_qos(prefetch_count=1)
                 self.logger.info('RabbitMQ connection established')
                 return
@@ -72,8 +77,9 @@ class RabbitMQUtil:
             try:
                 # Ensure the channel or connection is properly closed if necessary
                 if self.channel:
-                    # await self.channel.close()
-                    await self.close_connection()
+                    pass
+                    # await self.channel.close() 
+                    # await self.close_connection()
             except Exception as cleanup_error:
                 self.logger.error("Failed to properly close the channel: %s", cleanup_error)
 
