@@ -116,7 +116,7 @@ jobs:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   push-docker-image:
-    needs: [build-docker-image]
+    needs: [check-code-quality, build-docker-image]
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
