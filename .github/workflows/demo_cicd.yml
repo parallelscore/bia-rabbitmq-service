@@ -44,7 +44,7 @@ jobs:
         with:
           push: false
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:demo
           load: true
           build-args: |
             RABBITMQ_URL=${{ secrets.DEMO_RABBITMQ_URL }}
@@ -132,7 +132,7 @@ jobs:
         with:
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:demo
           build-args: |
             RABBITMQ_URL=${{ secrets.DEMO_RABBITMQ_URL }}
             REDIS_HOST=${{ secrets.DEMO_REDIS_HOST }}
@@ -149,7 +149,7 @@ jobs:
 #        name: Scan Docker image with Trivy
 #        uses: aquasecurity/trivy-action@master
 #        with:
-#          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+#          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:demo
 #          format: 'table'
 #          exit-code: '1'  # Trivy will exit with 1 if vulnerabilities are found
 #          ignore-unfixed: true
