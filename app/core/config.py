@@ -12,18 +12,36 @@ class BaseConfig(BaseSettings):
     VERSION: str = Field('1.0.0', json_schema_extra={'env': 'VERSION'})
     CORS_ORIGINS: List[str] = Field(default=['*'], json_schema_extra={'env': 'CORS_ORIGINS'})
     API_V1_STR: str = Field('/api/v1', json_schema_extra={'env': 'API_V1_STR'})
+    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
     RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
     REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
     REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
     REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
     REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
+    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
 
     base_config: ClassVar = ConfigDict(
         arbitrary_types_allowed=True,
     )
 
 
+<<<<<<< HEAD
 class DevConfig(BaseConfig):
+=======
+class DevelopmentConfig(BaseConfig):
+    DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
+    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
+    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
+    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
+    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
+    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
+    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
+    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
+
+
+class TestingConfig(BaseConfig):
+    # DEBUG: bool = Field(True, env='DEBUG')
+>>>>>>> dev
     DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
 
 
@@ -33,6 +51,16 @@ class DemoConfig(BaseConfig):
 
 class ProdConfig(BaseConfig):
     DEBUG: bool = Field(False, json_schema_extra={'env': 'DEBUG'})
+<<<<<<< HEAD
+=======
+    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
+    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
+    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
+    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
+    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
+    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
+    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
+>>>>>>> dev
 
 
 def get_settings():

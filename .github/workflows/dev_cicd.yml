@@ -1,4 +1,4 @@
-name: Dev CICD
+name: development CICD
 
 on:
   workflow_dispatch:

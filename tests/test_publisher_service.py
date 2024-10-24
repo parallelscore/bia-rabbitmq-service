@@ -66,30 +66,30 @@ class TestPublisherHandler:
         publisher_service.rabbitmq_util.publish_message.assert_awaited_once_with(queue_name, message)
         publisher_service.logger.error.assert_called_with('Failed to publish message: Test exception')
 
-    # @pytest.mark.asyncio
-    # async def test_publish_ai_analysis_message_success(self, publisher_service):
-    #     queue_name = 'test_queue'
-    #     message = {'key': 'value'}
-    #
-    #     publisher_service.rabbitmq_util.declare_queue = AsyncMock()
-    #     publisher_service.safe_publish = AsyncMock()
-    #
-    #     await publisher_service.publish_ai_analysis_message(queue_name, message)
-    #
-    #     publisher_service.rabbitmq_util.declare_queue.assert_awaited_once_with(queue_name)
-    #     publisher_service.safe_publish.assert_awaited_once_with(queue_name, message)
+    @pytest.mark.asyncio
+    async def test_publish_message_success(self, publisher_service):
+        queue_name = 'test_queue'
+        message = {'key': 'value'}
 
-    # @pytest.mark.asyncio
-    # async def test_publish_ai_analysis_message_exception(self, publisher_service):
-    #     queue_name = 'test_queue'
-    #     message = {'key': 'value'}
-    #
-    #     publisher_service.rabbitmq_util.declare_queue = AsyncMock(side_effect=Exception('Test exception'))
-    #
-    #     with pytest.raises(Exception, match='Test exception'):
-    #         await publisher_service.publish_ai_analysis_message(queue_name, message)
-    #
-    #     publisher_service.logger.error.assert_called_with('Error publishing message: Test exception')
+        publisher_service.rabbitmq_util.declare_queue = AsyncMock()
+        publisher_service.safe_publish = AsyncMock()
+
+        await publisher_service.publish_message(queue_name, message)
+
+        publisher_service.rabbitmq_util.declare_queue.assert_awaited_once_with(queue_name)
+        publisher_service.safe_publish.assert_awaited_once_with(queue_name, message)
+
+    @pytest.mark.asyncio
+    async def test_publish_message_exception(self, publisher_service):
+        queue_name = 'test_queue'
+        message = {'key': 'value'}
+
+        publisher_service.rabbitmq_util.declare_queue = AsyncMock(side_effect=Exception('Test exception'))
+
+        with pytest.raises(Exception, match='Test exception'):
+            await publisher_service.publish_message(queue_name, message)
+
+        publisher_service.logger.error.assert_called_with('Error publishing message: Test exception')
 
 
 if __name__ == '__main__':
