@@ -75,45 +75,45 @@ jobs:
           from: ${{ secrets.MAILGUN_EMAIL }}
           secure: true
 
-#  check-code-quality:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v2
-#        with:
-#          fetch-depth: 0
-#
-#      - name: Set up Python 3.9
-#        uses: actions/setup-python@v2
-#        with:
-#          python-version: '3.9'
-#
-#      - name: Install requirements and dependencies
-#        run: |
-#          pip install -r requirements.txt
-#          pip install coverage
-#
-#      - name: Run tests and generate coverage report
-#        run: |
-#          coverage run --source=. -m pytest tests/
-#          coverage xml -i
-#          coverage report
-#        env:
-#          RABBITMQ_URL: ${{ secrets.DEV_RABBITMQ_URL }}
-#          REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
-#          REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
-#          REDIS_PASSWORD: ${{ secrets.DEV_REDIS_PASSWORD }}
-#          REDIS_DB: ${{ secrets.DEV_REDIS_DB }}
-#
-#      - uses: sonarsource/sonarqube-scan-action@master
-#        env:
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-#
-#      - uses: sonarsource/sonarqube-quality-gate-action@master
-#        timeout-minutes: 5
-#        env:
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  check-code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install requirements and dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install coverage
+
+      - name: Run tests and generate coverage report
+        run: |
+          coverage run --source=. -m pytest tests/
+          coverage xml -i
+          coverage report
+        env:
+          RABBITMQ_URL: ${{ secrets.DEV_RABBITMQ_URL }}
+          REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          REDIS_PASSWORD: ${{ secrets.DEV_REDIS_PASSWORD }}
+          REDIS_DB: ${{ secrets.DEV_REDIS_DB }}
+
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   push-docker-image:
     needs: [build-docker-image]

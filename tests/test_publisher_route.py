@@ -20,7 +20,7 @@ class TestPublishRouter:
         return PublisherSchema(queue_name='test_queue', message={'key': 'value'})
 
     @pytest.mark.asyncio
-    @patch('app.services.publisher_service.publisher.publish_ai_analysis_message', new_callable=AsyncMock)
+    @patch('app.services.publisher_service.publisher.publish_message', new_callable=AsyncMock)
     async def test_publish_success(self, mock_publish, publish_data):
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(None, lambda: client.post('/publisher', json=publish_data.model_dump()))
@@ -28,7 +28,7 @@ class TestPublishRouter:
         mock_publish.assert_awaited_once_with(publish_data.queue_name, publish_data.message)
 
     @pytest.mark.asyncio
-    @patch('app.services.publisher_service.publisher.publish_ai_analysis_message', new_callable=AsyncMock)
+    @patch('app.services.publisher_service.publisher.publish_message', new_callable=AsyncMock)
     async def test_publish_failure(self, mock_publish, publish_data):
         mock_publish.side_effect = Exception('Publish failed')
         loop = asyncio.get_event_loop()
