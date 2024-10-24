@@ -25,40 +25,25 @@ class BaseConfig(BaseSettings):
     )
 
 
-class DevelopmentConfig(BaseConfig):
-    DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
-    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
-    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
-    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
-    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
-    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
-    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
-    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
-
-
-class TestingConfig(BaseConfig):
-    # DEBUG: bool = Field(True, env='DEBUG')
+class DevConfig(BaseConfig):
     DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
 
 
-class ProductionConfig(BaseConfig):
+class DemoConfig(BaseConfig):
+    DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
+
+
+class ProdConfig(BaseConfig):
     DEBUG: bool = Field(False, json_schema_extra={'env': 'DEBUG'})
-    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
-    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
-    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
-    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
-    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
-    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
-    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
 
 
 def get_settings():
     env = os.getenv('ENV', '').lower()
 
     env_mapping = {
-        'production': ('.env.production', ProductionConfig),
-        'testing': ('.env.testing', TestingConfig),
-        'development': ('.env.development', DevelopmentConfig),
+        'prod': ('.env.production', ProdConfig),
+        'demo': ('.env.testing', DemoConfig),
+        'dev': ('.env.development', DevConfig),
     }
 
     # If ENV is not specified, default to the basic .env file
@@ -68,7 +53,14 @@ def get_settings():
 
     # Load the environment-specific .env file if ENV is specified
     env_file, config_class = env_mapping.get(env, ('.env', BaseConfig))
-    load_dotenv(env_file)
+
+    # Load the env file only if it exists
+    if os.path.exists(env_file):
+        print(f"Loading {env} configuration from {env_file}")
+        load_dotenv(env_file)
+    else:
+        print(f"Environment file {env_file} does not exist")
+
     return config_class()
 
 

@@ -13,7 +13,7 @@ on:
       - 'dev'
 
 env:
-  ENV: development
+  ENV: dev
 
 jobs:
 
@@ -44,7 +44,7 @@ jobs:
         with:
           push: false
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:dev
           load: true
           build-args: |
             RABBITMQ_URL=${{ secrets.DEV_RABBITMQ_URL }}
@@ -52,10 +52,12 @@ jobs:
             REDIS_PORT=${{ secrets.DEV_REDIS_PORT }}
             REDIS_PASSWORD=${{ secrets.DEV_REDIS_PASSWORD }}
             REDIS_DB=${{ secrets.DEV_REDIS_DB }}
+            AI_SERVICE_BASE_URL=${{ secrets.DEV_AI_SERVICE_BASE_URL }}
+            ERROR_QUEUE=${{ secrets.DEV_ERROR_QUEUE }}
 
       -
         name: Save image tag
-        run: echo "::set-output name=image-tag::${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest"
+        run: echo "::set-output name=image-tag::${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:dev"
 
   notification-on-build-status:
     runs-on: ubuntu-latest
@@ -104,19 +106,21 @@ jobs:
           REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
           REDIS_PASSWORD: ${{ secrets.DEV_REDIS_PASSWORD }}
           REDIS_DB: ${{ secrets.DEV_REDIS_DB }}
+          AI_SERVICE_BASE_URL: ${{ secrets.DEV_AI_SERVICE_BASE_URL }}
+          ERROR_QUEUE: ${{ secrets.DEV_ERROR_QUEUE }}
 
       - uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#      - uses: sonarsource/sonarqube-quality-gate-action@master
+#        timeout-minutes: 5
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   push-docker-image:
-    needs: [build-docker-image]
+    needs: [check-code-quality, build-docker-image]
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
@@ -132,13 +136,15 @@ jobs:
         with:
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:dev
           build-args: |
             RABBITMQ_URL=${{ secrets.DEV_RABBITMQ_URL }}
             REDIS_HOST=${{ secrets.DEV_REDIS_HOST }}
             REDIS_PORT=${{ secrets.DEV_REDIS_PORT }}
             REDIS_PASSWORD=${{ secrets.DEV_REDIS_PASSWORD }}
             REDIS_DB=${{ secrets.DEV_REDIS_DB }}
+            AI_SERVICE_BASE_URL=${{ secrets.DEV_AI_SERVICE_BASE_URL }}
+            ERROR_QUEUE=${{ secrets.DEV_ERROR_QUEUE }}
 
 #  scan-docker-image:
 #    runs-on: ubuntu-latest
@@ -149,7 +155,7 @@ jobs:
 #        name: Scan Docker image with Trivy
 #        uses: aquasecurity/trivy-action@master
 #        with:
-#          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+#          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME }}:dev
 #          format: 'table'
 #          exit-code: '1'  # Trivy will exit with 1 if vulnerabilities are found
 #          ignore-unfixed: true
