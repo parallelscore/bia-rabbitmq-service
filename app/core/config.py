@@ -25,23 +25,7 @@ class BaseConfig(BaseSettings):
     )
 
 
-<<<<<<< HEAD
 class DevConfig(BaseConfig):
-=======
-class DevelopmentConfig(BaseConfig):
-    DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
-    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
-    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
-    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
-    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
-    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
-    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
-    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
-
-
-class TestingConfig(BaseConfig):
-    # DEBUG: bool = Field(True, env='DEBUG')
->>>>>>> dev
     DEBUG: bool = Field(True, json_schema_extra={'env': 'DEBUG'})
 
 
@@ -51,16 +35,6 @@ class DemoConfig(BaseConfig):
 
 class ProdConfig(BaseConfig):
     DEBUG: bool = Field(False, json_schema_extra={'env': 'DEBUG'})
-<<<<<<< HEAD
-=======
-    AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
-    RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
-    REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
-    REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})
-    REDIS_DB: int = Field(..., json_schema_extra={'env': 'REDIS_DB'})
-    REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
-    ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
->>>>>>> dev
 
 
 def get_settings():
