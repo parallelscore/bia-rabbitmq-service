@@ -39,26 +39,28 @@ class QueueMessageForwarder:
 
         if self.queue_name in RABBITMQ_QUEUES['listen_queues']:
             for subscriber in RABBITMQ_QUEUES['listen_queues'][self.queue_name]:
-                match subscriber['method']:
-                    case 'queue':
-                        try:
-                          self.logger.info('Forwarding message to queue...')
-                          await message.ack()
-                        except Exception as e:
-                            self.logger.error(f"Unexpected error forwading message: {e}")
-                            # publish to error queue
-                            await self.forward_to_error_queue_and_nack(message, e)
+                if subscriber['method'] == 'queue':
+                    # match subscriber['method']:
+                    #     case 'queue':
+                    try:
+                        self.logger.info('Forwarding message to queue...')
+                        await message.ack()
+                    except Exception as e:
+                        self.logger.error(f"Unexpected error forwading message: {e}")
+                        # publish to error queue
+                        await self.forward_to_error_queue_and_nack(message, e)
                         
-                    
-                    case 'endpoint':
-                        self.logger.info('Forwarding message to endpoint...')
-                        try:
-                          await self.forward_to_endpoint(subscriber, data)
-                          await message.ack()
-                        except Exception as e:
-                            self.logger.error(f"Unexpected error forwading message: {e}")
-                            # publish to error queue
-                            await self.forward_to_error_queue_and_nack(message, e)
+                
+                elif subscriber['method'] == 'endpoint':
+                    # case 'endpoint':
+                    self.logger.info('Forwarding message to endpoint...')
+                    try:
+                        await self.forward_to_endpoint(subscriber, data)
+                        await message.ack()
+                    except Exception as e:
+                        self.logger.error(f"Unexpected error forwading message: {e}")
+                        # publish to error queue
+                        await self.forward_to_error_queue_and_nack(message, e)
 
 
     async def consume_and_forward(self, queue_name) -> None:
