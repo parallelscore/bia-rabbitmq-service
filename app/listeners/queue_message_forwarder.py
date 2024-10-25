@@ -2,7 +2,7 @@ import json
 import aiohttp
 from aio_pika import IncomingMessage
 from starlette.responses import JSONResponse
-from pika.exceptions import ChannelClosed, ConnectionClosed
+from aio_pika.exceptions import ChannelClosed, ConnectionClosed
 
 from app.utils.logging_util import setup_logger
 from app.utils.rabbitmq_util import rabbitmq_util
@@ -80,10 +80,13 @@ class QueueMessageForwarder:
             self.logger.info('Message consumption stopped by user.')
 
         except (ConnectionClosed, ChannelClosed) as e:
+            print('====ConnectionClosed encountered!===')
             self.logger.error(f'Error consuming message: {e}')
             self.logger.info('Reconnecting to RabbitMQ...')
             await self.rabbitmq_util.setup_connection()
-            await self.consume_and_forward(queue_name)
+
+            if self.rabbitmq_util.connection and not self.rabbitmq_util.connection.is_closed:
+                await self.consume_and_forward(queue_name)
 
         except Exception as e:
             self.logger.error(f"Unexpected error consuming messages: {e}")
