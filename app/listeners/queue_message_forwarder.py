@@ -2,7 +2,7 @@ import json
 import aiohttp
 from aio_pika import IncomingMessage
 from starlette.responses import JSONResponse
-from pika.exceptions import ChannelClosed, ConnectionClosed
+from aio_pika.exceptions import ChannelClosed, ConnectionClosed
 
 from app.utils.logging_util import setup_logger
 from app.utils.rabbitmq_util import rabbitmq_util
@@ -39,26 +39,28 @@ class QueueMessageForwarder:
 
         if self.queue_name in RABBITMQ_QUEUES['listen_queues']:
             for subscriber in RABBITMQ_QUEUES['listen_queues'][self.queue_name]:
-                match subscriber['method']:
-                    case 'queue':
-                        try:
-                          self.logger.info('Forwarding message to queue...')
-                          await message.ack()
-                        except Exception as e:
-                            self.logger.error(f"Unexpected error forwading message: {e}")
-                            # publish to error queue
-                            await self.forward_to_error_queue_and_nack(message, e)
+                if subscriber['method'] == 'queue':
+                    # match subscriber['method']:
+                    #     case 'queue':
+                    try:
+                        self.logger.info('Forwarding message to queue...')
+                        await message.ack()
+                    except Exception as e:
+                        self.logger.error(f"Unexpected error forwading message: {e}")
+                        # publish to error queue
+                        await self.forward_to_error_queue_and_nack(message, e)
                         
-                    
-                    case 'endpoint':
-                        self.logger.info('Forwarding message to endpoint...')
-                        try:
-                          await self.forward_to_endpoint(subscriber, data)
-                          await message.ack()
-                        except Exception as e:
-                            self.logger.error(f"Unexpected error forwading message: {e}")
-                            # publish to error queue
-                            await self.forward_to_error_queue_and_nack(message, e)
+                
+                elif subscriber['method'] == 'endpoint':
+                    # case 'endpoint':
+                    self.logger.info('Forwarding message to endpoint...')
+                    try:
+                        await self.forward_to_endpoint(subscriber, data)
+                        await message.ack()
+                    except Exception as e:
+                        self.logger.error(f"Unexpected error forwading message: {e}")
+                        # publish to error queue
+                        await self.forward_to_error_queue_and_nack(message, e)
 
 
     async def consume_and_forward(self, queue_name) -> None:
@@ -80,10 +82,13 @@ class QueueMessageForwarder:
             self.logger.info('Message consumption stopped by user.')
 
         except (ConnectionClosed, ChannelClosed) as e:
+            print('====ConnectionClosed encountered!===')
             self.logger.error(f'Error consuming message: {e}')
             self.logger.info('Reconnecting to RabbitMQ...')
             await self.rabbitmq_util.setup_connection()
-            await self.consume_and_forward(queue_name)
+
+            if self.rabbitmq_util.connection and not self.rabbitmq_util.connection.is_closed:
+                await self.consume_and_forward(queue_name)
 
         except Exception as e:
             self.logger.error(f"Unexpected error consuming messages: {e}")
