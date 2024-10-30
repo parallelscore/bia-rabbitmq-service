@@ -55,7 +55,9 @@ class QueueMessageForwarder:
                     # case 'endpoint':
                     self.logger.info('Forwarding message to endpoint...')
                     try:
-                        await self.forward_to_endpoint(subscriber, data['data'])
+                        to_print = data["data"]
+                        print(f"Data property of message: {to_print}")
+                        await self.forward_to_endpoint(subscriber, data["data"])
                         await message.ack()
                     except Exception as e:
                         self.logger.error(f"Unexpected error forwading message: {e}")
@@ -143,9 +145,10 @@ class QueueMessageForwarder:
                 print('Session started')
                 try:
                     # Post request to extract overview endpoint
-                    self.logger.info(f'Sending {method} request to endpoint: {url}|{type(url)}')
+                    self.logger.info(f'Sending {method} request to endpoint: {url}')
+                    self.logger.info(f'Endpoint payload: {message}')
 
-                    response = await getattr(session, method.lower())(url, json={"result_json": message})
+                    response = await getattr(session, method.lower())(url, json=message)
                     
                     # async with getattr(session, method.lower())(url, json={"result_json": message}) as response:
                     print('Request sent')
@@ -181,7 +184,6 @@ class QueueMessageForwarder:
         
         else:
             for conditional_address in address:
-                print(f'conditionalAddress: {conditional_address}')
                 condition = conditional_address['condition'].split(' == ')
                 
                 if data[condition[0]] == condition[1]:
@@ -194,8 +196,9 @@ class QueueMessageForwarder:
 
 
     async def forward_to_error_queue_and_nack(self, message, err):
+        decoded_msg = json.loads(message.body)
         data = {
-            'payload': json.loads(message.body),
+            'payload': decoded_msg["data"],
             'error': f'{err}'
         }
         try:
