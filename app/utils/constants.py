@@ -18,7 +18,7 @@ RABBITMQ_QUEUES = {
         # 'address': 'POST http://localhost:3000/rabbitmq_consumer', # use nestjs sandbox # 'POST url'|'queue name'
       }
     ],
-    # 'bia_subscribe_queue': [
+    # 'bia_subscribe_queue': [ 
     #   {
     #     'method': 'endpoint', # 'endpoint'|'queue'
     #     'address': 'POST http://localhost:3000/rabbitmq_consumer', # use nestjs sandbox # 'POST url'|'queue name'
