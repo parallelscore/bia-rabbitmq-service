@@ -54,6 +54,8 @@ jobs:
             REDIS_DB=${{ secrets.DEV_REDIS_DB }}
             AI_SERVICE_BASE_URL=${{ secrets.DEV_AI_SERVICE_BASE_URL }}
             ERROR_QUEUE=${{ secrets.DEV_ERROR_QUEUE }}
+            AI_ANALYSIS_QUEUE=${{ secrets.DEV_AI_ANALYSIS_QUEUE }}
+            BACKEND_PUBLISH_QUEUE=${{ secrets.DEV_BACKEND_PUBLISH_QUEUE }}
 
       -
         name: Save image tag
@@ -108,6 +110,8 @@ jobs:
           REDIS_DB: ${{ secrets.DEV_REDIS_DB }}
           AI_SERVICE_BASE_URL: ${{ secrets.DEV_AI_SERVICE_BASE_URL }}
           ERROR_QUEUE: ${{ secrets.DEV_ERROR_QUEUE }}
+          AI_ANALYSIS_QUEUE: ${{ secrets.DEV_AI_ANALYSIS_QUEUE }}
+          BACKEND_PUBLISH_QUEUE: ${{ secrets.DEV_BACKEND_PUBLISH_QUEUE }}
 
       - uses: sonarsource/sonarqube-scan-action@master
         env:
@@ -145,6 +149,8 @@ jobs:
             REDIS_DB=${{ secrets.DEV_REDIS_DB }}
             AI_SERVICE_BASE_URL=${{ secrets.DEV_AI_SERVICE_BASE_URL }}
             ERROR_QUEUE=${{ secrets.DEV_ERROR_QUEUE }}
+            AI_ANALYSIS_QUEUE=${{ secrets.DEV_AI_ANALYSIS_QUEUE }}
+            BACKEND_PUBLISH_QUEUE=${{ secrets.DEV_BACKEND_PUBLISH_QUEUE }}
 
 #  scan-docker-image:
 #    runs-on: ubuntu-latest
