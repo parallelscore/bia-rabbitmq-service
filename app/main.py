@@ -44,10 +44,6 @@ async def start_consumers():
     Start the RabbitMQ consumers.
     """
 
-    # loop = asyncio.get_running_loop()
-    # task = loop.create_task(foo_app.pika_client.consume(loop))
-    # await task
-
     loop = asyncio.get_event_loop()
     try:
         for queue in RABBITMQ_QUEUES['listen_queues']:
