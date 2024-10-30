@@ -184,7 +184,7 @@ class QueueMessageForwarder:
                 print(f'conditionalAddress: {conditional_address}')
                 condition = conditional_address['condition'].split(' == ')
                 
-                if data[condition[0]] == condition[1]:
+                if data['data'][condition[0]] == condition[1]:
                     url_array = conditional_address['address'].split(' ')
                     method = url_array[0]
                     url = url_array[1]  
