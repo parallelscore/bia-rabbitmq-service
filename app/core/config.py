@@ -13,6 +13,8 @@ class BaseConfig(BaseSettings):
     CORS_ORIGINS: List[str] = Field(default=['*'], json_schema_extra={'env': 'CORS_ORIGINS'})
     API_V1_STR: str = Field('/api/v1', json_schema_extra={'env': 'API_V1_STR'})
     AI_SERVICE_BASE_URL: str = Field(..., json_schema_extra={'env': 'AI_SERVICE_BASE_URL'})
+    AI_ANALYSIS_QUEUE: str = Field(..., json_schema_extra={'env': 'AI_ANALYSIS_QUEUE'})
+    BACKEND_PUBLISH_QUEUE: str = Field(..., json_schema_extra={'env': 'BACKEND_PUBLISH_QUEUE'})
     RABBITMQ_URL: str = Field(..., json_schema_extra={'env': 'RABBITMQ_URL'})
     REDIS_HOST: str = Field(..., json_schema_extra={'env': 'REDIS_HOST'})
     REDIS_PORT: int = Field(..., json_schema_extra={'env': 'REDIS_PORT'})

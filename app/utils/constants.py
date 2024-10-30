@@ -1,10 +1,8 @@
 from app.core.config import settings
 
-AI_ANALYSIS_QUEUE = 'bia_subscribe_queue'
-
 RABBITMQ_QUEUES = {
   'listen_queues': {
-    'bia_publish_queue': [
+    settings.BACKEND_PUBLISH_QUEUE: [
       {
         'method': 'endpoint', # 'endpoint'|'queue'
         'address': [ # make this a string if there are no conditions

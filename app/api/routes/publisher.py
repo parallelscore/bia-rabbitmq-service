@@ -3,9 +3,10 @@ from fastapi import APIRouter, status
 from fastapi.exceptions import HTTPException
 
 from app.utils.logging_util import setup_logger
-from app.utils.constants import RABBITMQ_QUEUES, AI_ANALYSIS_QUEUE
 from app.services.publisher_service import publisher
 from app.schemas.publisher_schema import PublisherSchema
+
+from app.core.config import settings
 
 
 class PublisherRouter:
@@ -33,11 +34,11 @@ class PublisherRouter:
     # async def publisher_ai_analysis(self, message: Dict[str, Any]):
 	# 	# this method exist strictly to be able to forward a message to multiple recipients 
     #     try:
-    #         await publisher.publish_message(AI_ANALYSIS_QUEUE, message)
+    #         await publisher.publish_message(settings.AI_ANALYSIS_QUEUE, message)
     #         # publish to other recipients here
 
     #     except Exception as e:
-    #         self.logger.error(f'Error while trying to publish message to queue {AI_ANALYSIS_QUEUE}: {e}')
+    #         self.logger.error(f'Error while trying to publish message to queue {settings.AI_ANALYSIS_QUEUE}: {e}')
     #         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #                             detail=f'Error while trying to publish message to queue {AI_ANALYSIS_QUEUE}: {e}')
+    #                             detail=f'Error while trying to publish message to queue {settings.AI_ANALYSIS_QUEUE}: {e}')
         
