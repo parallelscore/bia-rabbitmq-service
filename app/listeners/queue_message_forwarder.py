@@ -55,7 +55,7 @@ class QueueMessageForwarder:
                     # case 'endpoint':
                     self.logger.info('Forwarding message to endpoint...')
                     try:
-                        await self.forward_to_endpoint(subscriber, data)
+                        await self.forward_to_endpoint(subscriber, data['data'])
                         await message.ack()
                     except Exception as e:
                         self.logger.error(f"Unexpected error forwading message: {e}")
@@ -184,7 +184,7 @@ class QueueMessageForwarder:
                 print(f'conditionalAddress: {conditional_address}')
                 condition = conditional_address['condition'].split(' == ')
                 
-                if data['data'][condition[0]] == condition[1]:
+                if data[condition[0]] == condition[1]:
                     url_array = conditional_address['address'].split(' ')
                     method = url_array[0]
                     url = url_array[1]  
