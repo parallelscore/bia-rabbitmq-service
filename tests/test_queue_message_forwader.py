@@ -15,7 +15,7 @@ def queue_message_forwarder():
 @pytest.fixture
 def incoming_message():
     message = MagicMock(spec=IncomingMessage)
-    message.body = json.dumps({"key": "value"}).encode('utf-8')
+    message.body = json.dumps({"data":{"key": "value"}}).encode('utf-8')
     return message
 
 
@@ -212,7 +212,7 @@ async def test_extract_url_string(queue_message_forwarder):
 @pytest.mark.asyncio
 async def test_extract_url_conditional(queue_message_forwarder):
     address = [{'condition': 'key == value', 'address': 'POST http://example.com'}]
-    method, url = await queue_message_forwarder.extract_url(address, {"data": {"key": "value"}})
+    method, url = await queue_message_forwarder.extract_url(address, {"key": "value"})
     assert method == 'POST'
     assert url == 'http://example.com'
 
