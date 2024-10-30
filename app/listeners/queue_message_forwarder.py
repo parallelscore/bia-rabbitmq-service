@@ -55,7 +55,8 @@ class QueueMessageForwarder:
                     # case 'endpoint':
                     self.logger.info('Forwarding message to endpoint...')
                     try:
-                        print(f"Data property of message: {data["data"]}")
+                        to_print = data["data"]
+                        print(f"Data property of message: {to_print}")
                         await self.forward_to_endpoint(subscriber, data["data"])
                         await message.ack()
                     except Exception as e:
