@@ -135,7 +135,6 @@ class QueueMessageForwarder:
         
         method, url = await self.extract_url(endpoint_info['address'], message)
         
-        # url = endpoint_info['address'].split(' ')
         self.logger.info(f'URL {url}')
 
         if url != '':
@@ -153,16 +152,21 @@ class QueueMessageForwarder:
                     self.logger.info(f'Request sent, with response status: {response.status}')
 
                     if response.status not in {200, 201}:
-                        raise Exception(f'Got response {response.status} from endpoint')
+                        raise aiohttp.ClientResponseError(
+                            request_info=response.request_info,
+                            history=response.history,
+                            status=response.status,
+                            message=f'Got response {response.status} from endpoint'
+                        )
 
                 except aiohttp.ClientError as e:
                     self.logger.info(f'Failed to forward message to endpoint. Reason: {e}')
-                    raise Exception(f'Failed to forward message to endpoint. Reason: {e}')
+                    raise aiohttp.ClientError(f'Failed to forward message to endpoint. Reason: {e}')
 
 
                 except Exception as e:
                     self.logger.error(f'Unexpected error occurred forwarding message to endpoint: {e}')
-                    raise Exception(f'Unexpected error occurred forwarding message to endpoint: {e}')
+                    raise
     
 
     async def extract_url(self, address, data):
@@ -176,12 +180,12 @@ class QueueMessageForwarder:
             url = url_array[1]
         
         else:
-            for conditionalAddress in address:
-                print(f'conditionalAddress: {conditionalAddress}')
-                condition = conditionalAddress['condition'].split(' == ')
+            for conditional_address in address:
+                print(f'conditionalAddress: {conditional_address}')
+                condition = conditional_address['condition'].split(' == ')
                 
                 if data[condition[0]] == condition[1]:
-                    url_array = conditionalAddress['address'].split(' ')
+                    url_array = conditional_address['address'].split(' ')
                     method = url_array[0]
                     url = url_array[1]  
                     break
@@ -198,7 +202,7 @@ class QueueMessageForwarder:
             await publisher.publish_message(settings.ERROR_QUEUE, data)
 
         except Exception as e:
-            pass
+            self.logger.error(f'Unexpected error occurred forwarding message to error queue: {e}')
 
         await message.nack(requeue=False)
 

@@ -14,7 +14,7 @@ RABBITMQ_QUEUES = {
           },
           {
             'condition': 'requestType == dispatchQuestionnaire',
-            'address': f'POST {settings.AI_SERVICE_BASE_URL}/api/v1/questionaire_rag'
+            'address': f'POST {settings.AI_SERVICE_BASE_URL}/api/v1/questionnaire_summary'
           }
         ]
         # 'address': 'POST http://localhost:3000/rabbitmq_consumer', # use nestjs sandbox # 'POST url'|'queue name'

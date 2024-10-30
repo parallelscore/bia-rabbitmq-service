@@ -50,7 +50,7 @@ async def test_declare_queue_success(rabbitmq_util):
 
         queue = await rabbitmq_util.declare_queue(queue_name)
 
-        mock_channel.declare_queue.assert_called_once_with(queue_name, durable=True)
+        mock_channel.declare_queue.assert_called_once_with(queue_name, durable=True, auto_delete=False)
         assert queue == mock_queue
 
 

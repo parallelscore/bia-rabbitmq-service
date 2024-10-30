@@ -24,16 +24,16 @@ class RabbitMQUtil:
         for attempt in range(retries):
             print(f'Attempt {attempt}...')
             try:
-                print(f'Trying...')
+                print('Trying...')
                 self.connection = await connect_robust(
                     self.server,
                     heartbeat=60,
                     timeout=30,
                     client_properties={"connection_name": "bia project"}
                 )
-                print(f'Calling channel...')
+                print('Calling channel...')
                 self.channel = await self.connection.channel()
-                print(f'channel called!')
+                print('channel called!')
                 await self.channel.set_qos(prefetch_count=1)
                 self.logger.info('RabbitMQ connection established')
                 return
@@ -47,7 +47,7 @@ class RabbitMQUtil:
     async def declare_queue(self, queue_name) -> Any:
         await self.ensure_connection()
         try:
-            queue = await self.channel.declare_queue(queue_name, durable=True)
+            queue = await self.channel.declare_queue(queue_name, durable=True, auto_delete=False)
             self.logger.info("Declared queue '%s'", queue_name)
             return queue
         except AMQPError as e:
