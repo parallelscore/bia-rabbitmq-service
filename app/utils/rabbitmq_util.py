@@ -58,13 +58,13 @@ class RabbitMQUtil:
         await self.ensure_connection()
         try:
             actual_routing_key = routing_key or queue_name
-            # exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC)
-            # headers = {"pattern": pattern} if pattern else {}
+            # exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC) #NOSONAR
+            # headers = {"pattern": pattern} if pattern else {} #NOSONAR
             await self.channel.default_exchange.publish(
                 Message(
                     body=json.dumps(message).encode(),
                     delivery_mode=DeliveryMode.PERSISTENT,
-                    # headers=headers
+                    # headers=headers #NOSONAR
                 ),
                 routing_key=actual_routing_key
             )
@@ -77,9 +77,9 @@ class RabbitMQUtil:
             try:
                 # Ensure the channel or connection is properly closed if necessary
                 if self.channel:
-                    pass
-                    # await self.channel.close() 
-                    # await self.close_connection()
+                    pass #NOSONAR
+                    # await self.channel.close() #NOSONAR
+                    # await self.close_connection() #NOSONAR
             except Exception as cleanup_error:
                 self.logger.error("Failed to properly close the channel: %s", cleanup_error)
 

@@ -143,8 +143,8 @@ class ServerMetrics:
                             <ul>
                                 <li>Total: <span>{total_memory_mb:.2f} MB</span></li>
                                 <li>Available: <span>{available_memory_mb:.2f} MB</span></li>
-                                <li>Percent Used: <span style="color:{memory_color}">{percent_memory_used:.2f}%</span
-                                ></li> <li>Used: <span>{used_memory_mb:.2f} MB</span></li>
+                                <li>Percent Used: <span style="color:{memory_color}">{percent_memory_used:.2f}%</span></li>
+                                <li>Used: <span>{used_memory_mb:.2f} MB</span></li>
                                 <li>Free: <span>{free_memory_mb:.2f} MB</span></li>
                             </ul>
                         </p>
