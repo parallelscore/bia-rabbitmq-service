@@ -76,12 +76,7 @@ async def test_consume_and_forward_callback_forward_to_error_queue(mock_publish_
 
     # Ensure message is nacked and published to error queue
     incoming_message.nack.assert_called_once_with(requeue=False)
-
-    # decoded_msg = json.loads(incoming_message.body)
-    # mock_publish_message.assert_called_once_with(settings.ERROR_QUEUE, {
-    #     'payload': decoded_msg,
-    #     'error': 'Test error'
-    # })
+    mock_publish_message.assert_called_once()
 
 
 @pytest.mark.asyncio
