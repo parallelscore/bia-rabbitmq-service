@@ -19,16 +19,17 @@ jobs:
           ref: demo
 
       - name: Checkout Destination Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          repository: BlackInnovationAlliance/bia-rabbitmq-service
+          repository: bia-blackspring/bia-rabbitmq-service
           token: ${{ secrets.DESTINATION_REPO_TOKEN }}
           path: destination-repo
           ref: main
+          fetch-depth: 0
 
       - name: Copy Source Code to Destination Repo
         run: |
-          rsync -av --progress --exclude destination-repo . destination-repo/
+          rsync -av --progress --exclude destination-repo --exclude '.git/' . destination-repo/
 
       - name: Configure Git Identity
         run: |
