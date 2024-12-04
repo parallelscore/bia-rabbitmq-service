@@ -20,15 +20,20 @@ class RabbitMQUtil:
         self.logger = setup_logger(__name__)
 
     async def setup_connection(self, retries=5, delay=5) -> None:
+        print('In setup_connection...')
         for attempt in range(retries):
+            print(f'Attempt {attempt}...')
             try:
+                print('Trying...')
                 self.connection = await connect_robust(
                     self.server,
                     heartbeat=60,
                     timeout=30,
                     client_properties={"connection_name": "bia project"}
                 )
+                print('Calling channel...')
                 self.channel = await self.connection.channel()
+                print('channel called!')
                 await self.channel.set_qos(prefetch_count=1)
                 self.logger.info('RabbitMQ connection established')
                 return
@@ -42,7 +47,7 @@ class RabbitMQUtil:
     async def declare_queue(self, queue_name) -> Any:
         await self.ensure_connection()
         try:
-            queue = await self.channel.declare_queue(queue_name, durable=True)
+            queue = await self.channel.declare_queue(queue_name, durable=True, auto_delete=False)
             self.logger.info("Declared queue '%s'", queue_name)
             return queue
         except AMQPError as e:
@@ -53,13 +58,13 @@ class RabbitMQUtil:
         await self.ensure_connection()
         try:
             actual_routing_key = routing_key or queue_name
-            # exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC)
-            # headers = {"pattern": pattern} if pattern else {}
+            # exchange = await self.channel.declare_exchange('topic_exchange', ExchangeType.TOPIC) #NOSONAR
+            # headers = {"pattern": pattern} if pattern else {} #NOSONAR
             await self.channel.default_exchange.publish(
                 Message(
                     body=json.dumps(message).encode(),
                     delivery_mode=DeliveryMode.PERSISTENT,
-                    # headers=headers
+                    # headers=headers #NOSONAR
                 ),
                 routing_key=actual_routing_key
             )
@@ -72,8 +77,9 @@ class RabbitMQUtil:
             try:
                 # Ensure the channel or connection is properly closed if necessary
                 if self.channel:
-                    # await self.channel.close()
-                    await self.close_connection()
+                    pass #NOSONAR
+                    # await self.channel.close() #NOSONAR
+                    # await self.close_connection() #NOSONAR
             except Exception as cleanup_error:
                 self.logger.error("Failed to properly close the channel: %s", cleanup_error)
 
