@@ -22,6 +22,10 @@ class BaseConfig(BaseSettings):
     REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
     ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
 
+    RABBITMQ_HEALTH_CHECK_INTERVAL: int = Field(3600, json_schema_extra={'env': 'RABBITMQ_HEALTH_CHECK_INTERVAL'})
+    RABBITMQ_MAX_IDLE_TIME: int = Field(21600, json_schema_extra={'env': 'RABBITMQ_MAX_IDLE_TIME'})  # 6 hours
+    RABBITMQ_MAX_CONNECTION_AGE: int = Field(86400, json_schema_extra={'env': 'RABBITMQ_MAX_CONNECTION_AGE'})  # 24 hours
+
     base_config: ClassVar = ConfigDict(
         arbitrary_types_allowed=True,
     )
