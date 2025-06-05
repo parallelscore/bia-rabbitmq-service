@@ -2,7 +2,6 @@ import json
 import asyncio
 from typing import Any
 from datetime import datetime
-from aio_pika import ExchangeType
 from aio_pika.exceptions import AMQPError
 from aio_pika.abc import AbstractRobustConnection
 from aio_pika import connect_robust, Message, DeliveryMode
@@ -41,7 +40,7 @@ class RabbitMQUtil:
             # Check if connection is already good
             if self.connection and not self.connection.is_closed:
                 self.logger.debug("Connection already established and healthy")
-                # Stop recovery task if running
+                # Stop a recovery task if running
                 await self._stop_recovery_task()
                 return
 
@@ -61,7 +60,7 @@ class RabbitMQUtil:
                                 timeout=30,
                                 client_properties={"connection_name": "bia project"}
                             ),
-                            timeout=45  # 45 second timeout
+                            timeout=45  # 45 second timeouts
                         )
 
                         self.logger.debug('Connection established, creating channel...')
@@ -82,13 +81,13 @@ class RabbitMQUtil:
                         self.connection_established_at = datetime.utcnow()
                         self.last_activity = datetime.utcnow()
 
-                        # Start health check task
+                        # Start a health check task
                         await self._start_health_check_task()
 
-                        # Stop recovery task if running
+                        # Stop a recovery task if running
                         await self._stop_recovery_task()
 
-                        # Reset recovery interval on successful connection
+                        # Reset a recovery interval on successful connection
                         self._recovery_interval = 30
 
                         return
@@ -129,7 +128,7 @@ class RabbitMQUtil:
             self.channel = None
 
     async def _start_recovery_task(self):
-        """Start continuous recovery task"""
+        """Start a continuous recovery task"""
         if self._recovery_task and not self._recovery_task.done():
             self.logger.debug("Recovery task already running")
             return
@@ -145,7 +144,7 @@ class RabbitMQUtil:
         self.logger.info(f"Started continuous recovery task (interval: {self._recovery_interval}s)")
 
     async def _stop_recovery_task(self):
-        """Stop continuous recovery task"""
+        """Stop a continuous recovery task"""
         if self._recovery_task and not self._recovery_task.done():
             self._recovery_task.cancel()
             try:
@@ -186,7 +185,7 @@ class RabbitMQUtil:
                 await asyncio.sleep(30)  # Wait before retrying
 
     async def _start_health_check_task(self):
-        """Start health check task if not already running"""
+        """Start a health check task if not already running"""
         if self._health_check_task and not self._health_check_task.done():
             self.logger.debug("Health check task already running")
             return
@@ -211,7 +210,7 @@ class RabbitMQUtil:
                     self.logger.warning("Connection is stale, forcing reconnection...")
                     # Schedule reconnection as a separate task to avoid self-cancellation
                     asyncio.create_task(self._handle_stale_connection())
-                    break  # Exit this health check task gracefully
+                    break  # Exit this health checks a task gracefully
                 else:
                     # Test connection health with a lightweight operation
                     await self._test_connection_health()
