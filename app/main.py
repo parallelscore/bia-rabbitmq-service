@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.core.config import settings
 from app.core.middleware import register_middlewares
+from app.api.routes.health import HealthRouter
 from app.api.routes.publisher import PublisherRouter
 from app.api.routes.server_metrics import ServerMetrics
 from app.listeners.queue_message_forwarder import queue_message_forwarder
@@ -26,11 +27,15 @@ def create_app() -> FastAPI:
     # Register middleware
     register_middlewares(app)
 
+    # Register routers
+    health_router = HealthRouter().router
     publisher_router = PublisherRouter().router
     server_metrics_router = ServerMetrics(app).router
 
+
     # Register the routers
     app.include_router(server_metrics_router)
+    app.include_router(health_router, prefix=settings.API_V1_STR)
     app.include_router(publisher_router, prefix=settings.API_V1_STR)
 
     # Start consumers on application startup
