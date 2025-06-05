@@ -31,6 +31,18 @@ class HealthRouter:
             # Determine overall health
             is_healthy = connection_status.get("connected", False)
 
+            # Add debug information
+            debug_info = {
+                "connection_object_exists": rabbitmq_util.connection is not None,
+                "connection_closed": rabbitmq_util.connection.is_closed if rabbitmq_util.connection else None,
+                "reconnecting_flag": connection_status.get("reconnecting", False),
+                "health_check_running": connection_status.get("health_check_running", False)
+            }
+            connection_status["debug"] = debug_info
+
+            # Log the status for debugging
+            self.logger.info(f"RabbitMQ health check - Connected: {is_healthy}, Debug: {debug_info}")
+
             if is_healthy:
                 # Check if connection is getting stale
                 idle_seconds = connection_status.get("idle_seconds", 0)
@@ -45,6 +57,13 @@ class HealthRouter:
             return JSONResponse(
                 content=connection_status,
                 status_code=200 if is_healthy else 503
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error checking RabbitMQ health: {e}")
+            return JSONResponse(
+                content={"error": str(e), "healthy": False},
+                status_code=503
             )
 
         except Exception as e:
