@@ -5,12 +5,10 @@ from fastapi import FastAPI
 
 from app.core.config import settings
 from app.api.routes.health import HealthRouter
+from app.utils.constants import RABBITMQ_QUEUES
 from app.core.middleware import register_middlewares
 from app.api.routes.publisher import PublisherRouter
 from app.api.routes.server_metrics import ServerMetrics
-
-from app.utils.constants import RABBITMQ_QUEUES
-from app.services.alert_background_task import alert_background_task
 from app.listeners.queue_message_forwarder import queue_message_forwarder
 
 
@@ -37,23 +35,22 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix=settings.API_V1_STR)
     app.include_router(publisher_router, prefix=settings.API_V1_STR)
 
-    # Start consumers and monitoring on application startup
-    app.add_event_handler('startup', start_services)
+    # Start consumers on application startup
+    app.add_event_handler('startup', start_consumers)
 
-    # Add shutdown event handler to cleanup connections
-    app.add_event_handler('shutdown', shutdown_services)
+    # Add shutdown event handler to clean up connections
+    app.add_event_handler('shutdown', shutdown_consumers)
 
     return app
 
 
-async def start_services():
+async def start_consumers():
     """
-    Start the RabbitMQ consumers and alert monitoring.
+    Start the RabbitMQ consumers.
     """
 
     loop = asyncio.get_event_loop()
     try:
-        # Start RabbitMQ consumers
         consumer_tasks = []
         for queue in RABBITMQ_QUEUES['listen_queues']:
             task = loop.create_task(queue_message_forwarder.consume_and_forward(queue))
@@ -73,22 +70,15 @@ async def start_services():
         # Store tasks for potential cleanup
         app.state.consumer_tasks = consumer_tasks
 
-        # Start alert monitoring
-        await alert_background_task.start_monitoring()
-        print("Services started: RabbitMQ consumers and alert monitoring")
-
     except Exception as e:
-        print(f"Error starting services: {e}")
+        print(f"Error starting consumers: {e}")
 
 
-async def shutdown_services():
+async def shutdown_consumers():
     """
-    Cleanup consumers, connections, and monitoring on shutdown.
+    Cleanup consumers and connections on shutdown.
     """
     try:
-        # Stop alert monitoring
-        await alert_background_task.stop_monitoring()
-
         # Cancel consumer tasks if they exist
         if hasattr(app.state, 'consumer_tasks'):
             for task in app.state.consumer_tasks:
@@ -99,7 +89,7 @@ async def shutdown_services():
         from app.utils.rabbitmq_util import rabbitmq_util
         await rabbitmq_util.close_connection()
 
-        print("Services shutdown completed: consumers, connections, and monitoring cleaned up")
+        print("Consumers and connections cleaned up successfully")
 
     except Exception as e:
         print(f"Error during shutdown: {e}")
