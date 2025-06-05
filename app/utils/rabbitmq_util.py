@@ -27,8 +27,11 @@ class RabbitMQUtil:
         self.max_idle_time = getattr(settings, 'RABBITMQ_MAX_IDLE_TIME', 21600)  # 6 hours
         self.max_connection_age = getattr(settings, 'RABBITMQ_MAX_CONNECTION_AGE', 86400)  # 24 hours
         self._health_check_task = None
-        self._reconnecting = False  # Flag to prevent multiple reconnection attempts
-        self._reconnection_lock = asyncio.Lock()  # Prevent concurrent reconnections
+        self._reconnecting = False
+        self._reconnection_lock = asyncio.Lock()
+        self._recovery_task = None  # Continuous recovery task
+        self._recovery_interval = 30  # Start with 30 seconds
+        self._max_recovery_interval = 300  # Max 5 minutes
 
     async def setup_connection(self, retries=5, delay=5) -> None:
         self.logger.info('Starting connection setup...')
@@ -38,6 +41,8 @@ class RabbitMQUtil:
             # Check if connection is already good
             if self.connection and not self.connection.is_closed:
                 self.logger.debug("Connection already established and healthy")
+                # Stop recovery task if running
+                await self._stop_recovery_task()
                 return
 
             self._reconnecting = True
@@ -77,8 +82,14 @@ class RabbitMQUtil:
                         self.connection_established_at = datetime.utcnow()
                         self.last_activity = datetime.utcnow()
 
-                        # Start health check task (only if not already running)
+                        # Start health check task
                         await self._start_health_check_task()
+
+                        # Stop recovery task if running
+                        await self._stop_recovery_task()
+
+                        # Reset recovery interval on successful connection
+                        self._recovery_interval = 30
 
                         return
 
@@ -97,9 +108,11 @@ class RabbitMQUtil:
                     if attempt < retries - 1:
                         self.logger.info(f'Waiting {delay} seconds before retry...')
                         await asyncio.sleep(delay)
-                    else:
-                        self.logger.error(f'All {retries} connection attempts failed')
-                        raise ConnectionError(f"Failed to establish RabbitMQ connection after {retries} attempts")
+
+                # All attempts failed - start continuous recovery
+                self.logger.error(f'All {retries} connection attempts failed, starting continuous recovery')
+                await self._start_recovery_task()
+                raise ConnectionError(f"Failed to establish RabbitMQ connection after {retries} attempts")
 
             finally:
                 self._reconnecting = False
@@ -114,6 +127,63 @@ class RabbitMQUtil:
         finally:
             self.connection = None
             self.channel = None
+
+    async def _start_recovery_task(self):
+        """Start continuous recovery task"""
+        if self._recovery_task and not self._recovery_task.done():
+            self.logger.debug("Recovery task already running")
+            return
+
+        if self._recovery_task:
+            self._recovery_task.cancel()
+            try:
+                await self._recovery_task
+            except asyncio.CancelledError:
+                pass
+
+        self._recovery_task = asyncio.create_task(self._continuous_recovery())
+        self.logger.info(f"Started continuous recovery task (interval: {self._recovery_interval}s)")
+
+    async def _stop_recovery_task(self):
+        """Stop continuous recovery task"""
+        if self._recovery_task and not self._recovery_task.done():
+            self._recovery_task.cancel()
+            try:
+                await self._recovery_task
+            except asyncio.CancelledError:
+                pass
+            self._recovery_task = None
+            self.logger.debug("Recovery task stopped")
+
+    async def _continuous_recovery(self):
+        """Continuously attempt to recover connection"""
+        while True:
+            try:
+                await asyncio.sleep(self._recovery_interval)
+
+                # Check if we need to recover
+                if not self.connection or self.connection.is_closed:
+                    self.logger.info(f"Attempting connection recovery (interval: {self._recovery_interval}s)")
+                    try:
+                        await self.setup_connection(retries=1, delay=1)
+                        # If successful, this task will be cancelled by setup_connection
+                        break
+                    except Exception as e:
+                        self.logger.warning(f"Recovery attempt failed: {e}")
+                        # Exponential backoff with max limit
+                        self._recovery_interval = min(self._recovery_interval * 1.5, self._max_recovery_interval)
+                        self.logger.debug(f"Increased recovery interval to {self._recovery_interval}s")
+                else:
+                    # Connection is healthy, stop recovery
+                    self.logger.debug("Connection is healthy, stopping recovery task")
+                    break
+
+            except asyncio.CancelledError:
+                self.logger.debug("Recovery task cancelled")
+                break
+            except Exception as e:
+                self.logger.error(f"Recovery task error: {e}")
+                await asyncio.sleep(30)  # Wait before retrying
 
     async def _start_health_check_task(self):
         """Start health check task if not already running"""
@@ -195,6 +265,8 @@ class RabbitMQUtil:
                 )
                 await asyncio.wait_for(test_channel.close(), timeout=5)
                 self.logger.debug("Connection health check passed")
+            else:
+                raise Exception("Connection is None or closed")
         except asyncio.TimeoutError:
             self.logger.warning("Connection health check timed out")
             if not self._reconnecting:
@@ -213,7 +285,6 @@ class RabbitMQUtil:
 
         self.logger.info("Forcing connection reconnection...")
 
-        # Use the same lock as setup_connection to prevent race conditions
         try:
             # Cancel health check task
             if self._health_check_task and not self._health_check_task.done():
@@ -247,7 +318,8 @@ class RabbitMQUtil:
             # Reset timestamps to avoid immediate retry
             self.connection_established_at = None
             self.last_activity = None
-            # Don't raise - let the service continue and try again later
+            # Start recovery task if not already running
+            await self._start_recovery_task()
 
     def _update_activity(self):
         """Update last activity timestamp"""
@@ -306,7 +378,9 @@ class RabbitMQUtil:
             raise e
 
     async def close_connection(self) -> None:
-        # Cancel health check task
+        # Stop all background tasks
+        await self._stop_recovery_task()
+
         if self._health_check_task and not self._health_check_task.done():
             self._health_check_task.cancel()
             try:
@@ -356,7 +430,9 @@ class RabbitMQUtil:
             "max_idle_time": self.max_idle_time,
             "max_connection_age": self.max_connection_age,
             "health_check_running": self._health_check_task and not self._health_check_task.done(),
-            "reconnecting": self._reconnecting
+            "reconnecting": self._reconnecting,
+            "recovery_running": self._recovery_task and not self._recovery_task.done(),
+            "recovery_interval": self._recovery_interval
         }
 
         if self.connection_established_at and is_connected:
