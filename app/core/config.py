@@ -22,9 +22,40 @@ class BaseConfig(BaseSettings):
     REDIS_PASSWORD: str = Field(..., json_schema_extra={'env': 'REDIS_PASSWORD'})
     ERROR_QUEUE: str = Field(..., json_schema_extra={'env': 'ERROR_QUEUE'})
 
-    RABBITMQ_HEALTH_CHECK_INTERVAL: int = Field(3600, json_schema_extra={'env': 'RABBITMQ_HEALTH_CHECK_INTERVAL'})
+    # RabbitMQ health monitoring settings
+    RABBITMQ_HEALTH_CHECK_INTERVAL: int = Field(3600, json_schema_extra={'env': 'RABBITMQ_HEALTH_CHECK_INTERVAL'})  # 1 hour
     RABBITMQ_MAX_IDLE_TIME: int = Field(21600, json_schema_extra={'env': 'RABBITMQ_MAX_IDLE_TIME'})  # 6 hours
     RABBITMQ_MAX_CONNECTION_AGE: int = Field(86400, json_schema_extra={'env': 'RABBITMQ_MAX_CONNECTION_AGE'})  # 24 hours
+
+    # Alert system settings
+    ALERT_EMAIL_ENABLED: bool = Field(False, json_schema_extra={'env': 'ALERT_EMAIL_ENABLED'})
+    ALERT_WEBHOOK_ENABLED: bool = Field(False, json_schema_extra={'env': 'ALERT_WEBHOOK_ENABLED'})
+    ALERT_SLACK_ENABLED: bool = Field(False, json_schema_extra={'env': 'ALERT_SLACK_ENABLED'})
+
+    # Email alert settings
+    ALERT_SMTP_SERVER: str = Field('localhost', json_schema_extra={'env': 'ALERT_SMTP_SERVER'})
+    ALERT_SMTP_PORT: int = Field(587, json_schema_extra={'env': 'ALERT_SMTP_PORT'})
+    ALERT_SMTP_USERNAME: str = Field('', json_schema_extra={'env': 'ALERT_SMTP_USERNAME'})
+    ALERT_SMTP_PASSWORD: str = Field('', json_schema_extra={'env': 'ALERT_SMTP_PASSWORD'})
+    ALERT_EMAIL_FROM: str = Field('alerts@example.com', json_schema_extra={'env': 'ALERT_EMAIL_FROM'})
+    ALERT_EMAIL_TO: str = Field('', json_schema_extra={'env': 'ALERT_EMAIL_TO'})  # Comma-separated emails
+
+    # Webhook alert settings
+    ALERT_WEBHOOK_URL: str = Field('', json_schema_extra={'env': 'ALERT_WEBHOOK_URL'})
+
+    # Slack alert settings
+    ALERT_SLACK_WEBHOOK_URL: str = Field('', json_schema_extra={'env': 'ALERT_SLACK_WEBHOOK_URL'})
+
+    # Base URL for health check links in alerts
+    ALERT_BASE_URL: str = Field('http://localhost:8000', json_schema_extra={'env': 'ALERT_BASE_URL'})
+
+    # Alert thresholds
+    ALERT_CONNECTION_IDLE_THRESHOLD: int = Field(18000, json_schema_extra={'env': 'ALERT_CONNECTION_IDLE_THRESHOLD'})  # 5 hours
+    ALERT_CONNECTION_AGE_THRESHOLD: int = Field(82800, json_schema_extra={'env': 'ALERT_CONNECTION_AGE_THRESHOLD'})    # 23 hours
+    ALERT_CONSUMER_IDLE_THRESHOLD: int = Field(86400, json_schema_extra={'env': 'ALERT_CONSUMER_IDLE_THRESHOLD'})     # 24 hours
+
+    # Recovery-specific alert settings
+    ALERT_RECOVERY_FAILURE_THRESHOLD: int = Field(300, json_schema_extra={'env': 'ALERT_RECOVERY_FAILURE_THRESHOLD'})  # 5 minutes
 
     base_config: ClassVar = ConfigDict(
         arbitrary_types_allowed=True,
