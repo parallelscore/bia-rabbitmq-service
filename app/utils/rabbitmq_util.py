@@ -2,6 +2,7 @@ import json
 import asyncio
 from typing import Any
 from datetime import datetime
+from aio_pika import ExchangeType
 from aio_pika.exceptions import AMQPError
 from aio_pika.abc import AbstractRobustConnection
 from aio_pika import connect_robust, Message, DeliveryMode
@@ -19,11 +20,12 @@ class RabbitMQUtil:
 
         self.logger = setup_logger(__name__)
 
+        # Add health monitoring attributes
         self.last_activity = None
         self.connection_established_at = None
-        self.health_check_interval = settings.RABBITMQ_HEALTH_CHECK_INTERVAL
-        self.max_idle_time = settings.RABBITMQ_MAX_IDLE_TIME
-        self.max_connection_age = settings.RABBITMQ_MAX_CONNECTION_AGE
+        self.health_check_interval = getattr(settings, 'RABBITMQ_HEALTH_CHECK_INTERVAL', 3600)  # 1 hour
+        self.max_idle_time = getattr(settings, 'RABBITMQ_MAX_IDLE_TIME', 21600)  # 6 hours
+        self.max_connection_age = getattr(settings, 'RABBITMQ_MAX_CONNECTION_AGE', 86400)  # 24 hours
         self._health_check_task = None
 
     async def setup_connection(self, retries=5, delay=5) -> None:
@@ -70,6 +72,7 @@ class RabbitMQUtil:
                     await self._test_connection_health()
 
             except asyncio.CancelledError:
+                self.logger.info("Health check task cancelled")
                 break
             except Exception as e:
                 self.logger.error(f"Health check error: {e}")
@@ -82,14 +85,14 @@ class RabbitMQUtil:
         if self.connection_established_at:
             connection_age = (now - self.connection_established_at).total_seconds()
             if connection_age > self.max_connection_age:
-                self.logger.info(f"Connection age ({connection_age}s) exceeds limit")
+                self.logger.info(f"Connection age ({connection_age}s) exceeds limit ({self.max_connection_age}s)")
                 return True
 
         # Check idle time
         if self.last_activity:
             idle_time = (now - self.last_activity).total_seconds()
             if idle_time > self.max_idle_time:
-                self.logger.info(f"Connection idle time ({idle_time}s) exceeds limit")
+                self.logger.info(f"Connection idle time ({idle_time}s) exceeds limit ({self.max_idle_time}s)")
                 return True
 
         return False
@@ -109,10 +112,19 @@ class RabbitMQUtil:
     async def _force_reconnection(self):
         """Force connection reconnection"""
         try:
+            # Cancel health check task
+            if self._health_check_task:
+                self._health_check_task.cancel()
+                self._health_check_task = None
+
             if self.connection and not self.connection.is_closed:
                 await self.connection.close()
         except Exception as e:
             self.logger.warning(f"Error closing old connection: {e}")
+
+        # Reset connection state
+        self.connection = None
+        self.channel = None
 
         await self.setup_connection()
 
@@ -125,6 +137,7 @@ class RabbitMQUtil:
         try:
             queue = await self.channel.declare_queue(queue_name, durable=True, auto_delete=False)
             self.logger.info("Declared queue '%s'", queue_name)
+            self._update_activity()  # Track activity
             return queue
         except AMQPError as e:
             self.logger.error("Failed to declare queue '%s': %s", queue_name, e)
@@ -144,8 +157,8 @@ class RabbitMQUtil:
                 ),
                 routing_key=actual_routing_key
             )
-            self._update_activity()
             self.logger.info("Message published to queue '%s'", queue_name)
+            self._update_activity()  # Track activity
         except AMQPError as e:
             self.logger.error("Failed to publish message to queue '%s': %s", queue_name, e)
             raise e
@@ -172,12 +185,17 @@ class RabbitMQUtil:
             queue = await self.declare_queue(queue_name)
             await queue.consume(activity_tracking_callback)
             self.logger.info("Started consuming message from queue '%s'", queue_name)
-            
+
         except AMQPError as e:
             self.logger.error("Failed to consume from queue '%s': %s", queue_name, e)
             raise e
 
     async def close_connection(self) -> None:
+        # Cancel health check task
+        if self._health_check_task:
+            self._health_check_task.cancel()
+            self._health_check_task = None
+
         if self.connection and not self.connection.is_closed:
             try:
                 await self.connection.close()
@@ -202,6 +220,28 @@ class RabbitMQUtil:
 
     async def initialize(self):
         await self.setup_connection()
+
+    def get_connection_status(self) -> dict:
+        """Get current connection status for health checks"""
+        now = datetime.utcnow()
+
+        status = {
+            "connected": self.connection and not self.connection.is_closed,
+            "connection_established_at": self.connection_established_at.isoformat() if self.connection_established_at else None,
+            "last_activity": self.last_activity.isoformat() if self.last_activity else None,
+            "current_time": now.isoformat(),
+            "health_check_interval": self.health_check_interval,
+            "max_idle_time": self.max_idle_time,
+            "max_connection_age": self.max_connection_age
+        }
+
+        if self.connection_established_at:
+            status["connection_age_seconds"] = (now - self.connection_established_at).total_seconds()
+
+        if self.last_activity:
+            status["idle_seconds"] = (now - self.last_activity).total_seconds()
+
+        return status
 
 
 rabbitmq_util = RabbitMQUtil()
