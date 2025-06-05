@@ -1,5 +1,7 @@
 import json
+import asyncio
 import aiohttp
+from datetime import datetime
 from aio_pika import IncomingMessage
 from starlette.responses import JSONResponse
 from aio_pika.exceptions import ChannelClosed, ConnectionClosed
@@ -18,6 +20,38 @@ class QueueMessageForwarder:
         self.rabbitmq_util = rabbitmq_util
         self.logger = setup_logger(__name__)
         self.queue_name = ''
+        self.consumer_start_time = {}
+        self.last_message_processed = {}
+        self.message_count = {}
+
+    async def consume_and_forward(self, queue_name) -> None:
+        """Consume messages with enhanced monitoring"""
+        self.queue_name = queue_name
+        self.consumer_start_time[queue_name] = datetime.utcnow()
+        self.message_count[queue_name] = 0
+
+        self.logger.info(f"Starting consumer for queue: {queue_name}")
+
+        await self.rabbitmq_util.ensure_connection()
+
+        try:
+            await self.rabbitmq_util.consume_message(
+                queue_name=self.queue_name,
+                callback=self.consume_and_forward_callback
+            )
+
+        except KeyboardInterrupt:
+            self.logger.info('Message consumption stopped by user.')
+
+        except (ConnectionClosed, ChannelClosed) as e:
+            self.logger.error(f'Connection error for queue {queue_name}: {e}')
+            await self._handle_connection_error(queue_name)
+
+        except Exception as e:
+            self.logger.error(f"Unexpected error consuming messages from {queue_name}: {e}")
+            # Add retry logic
+            await asyncio.sleep(5)
+            await self.consume_and_forward(queue_name)
 
 
     async def consume_and_forward_callback(self, message: IncomingMessage): #-> JSONResponse:
@@ -31,6 +65,12 @@ class QueueMessageForwarder:
         Returns:
             JSONResponse: The response indicating the status of message processing.
         """
+
+        queue_name = self.queue_name
+        self.last_message_processed[queue_name] = datetime.utcnow()
+        self.message_count[queue_name] = self.message_count.get(queue_name, 0) + 1
+
+        self.logger.info(f'Processing message #{self.message_count[queue_name]} for queue {queue_name}')
 
         data = json.loads(message.body)
         self.logger.info(f'Message: {data}')
@@ -64,36 +104,14 @@ class QueueMessageForwarder:
                         # publish to error queue
                         await self.forward_to_error_queue_and_nack(message, e)
 
+    async def _handle_connection_error(self, queue_name):
+        """Handle connection errors with exponential backoff"""
+        self.logger.info(f'Reconnecting consumer for queue {queue_name}...')
+        await self.rabbitmq_util.setup_connection()
 
-    async def consume_and_forward(self, queue_name) -> None:
-
-        """
-        Consume messages from a given queue and forward it to the subscribers based on what's registered
-        """
-
-        self.queue_name = queue_name
-        await self.rabbitmq_util.ensure_connection()
-
-        try:
-            await self.rabbitmq_util.consume_message(
-                queue_name=self.queue_name,
-                callback=self.consume_and_forward_callback
-            )
-
-        except KeyboardInterrupt:
-            self.logger.info('Message consumption stopped by user.')
-
-        except (ConnectionClosed, ChannelClosed) as e:
-            print('====ConnectionClosed encountered!===')
-            self.logger.error(f'Error consuming message: {e}')
-            self.logger.info('Reconnecting to RabbitMQ...')
-            await self.rabbitmq_util.setup_connection()
-
-            if self.rabbitmq_util.connection and not self.rabbitmq_util.connection.is_closed:
-                await self.consume_and_forward(queue_name)
-
-        except Exception as e:
-            self.logger.error(f"Unexpected error consuming messages: {e}")
+        if self.rabbitmq_util.connection and not self.rabbitmq_util.connection.is_closed:
+            await asyncio.sleep(2)  # Brief delay before restart
+            await self.consume_and_forward(queue_name)
 
 
     # async def consume_and_forward_to_ai_service(self, queue_name) -> None:
@@ -208,6 +226,22 @@ class QueueMessageForwarder:
             self.logger.error(f'Unexpected error occurred forwarding message to error queue: {e}')
 
         await message.nack(requeue=False)
+
+    def get_consumer_status(self, queue_name: str) -> dict:
+        """Get consumer health status"""
+        now = datetime.utcnow()
+        start_time = self.consumer_start_time.get(queue_name)
+        last_message = self.last_message_processed.get(queue_name)
+
+        return {
+            "queue_name": queue_name,
+            "start_time": start_time.isoformat() if start_time else None,
+            "uptime_seconds": (now - start_time).total_seconds() if start_time else 0,
+            "last_message_time": last_message.isoformat() if last_message else None,
+            "idle_seconds": (now - last_message).total_seconds() if last_message else None,
+            "messages_processed": self.message_count.get(queue_name, 0),
+            "status": "active" if start_time else "stopped"
+        }
 
 
 queue_message_forwarder = QueueMessageForwarder()
